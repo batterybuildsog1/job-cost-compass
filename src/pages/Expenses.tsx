@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Plus, 
@@ -13,6 +12,7 @@ import {
   DollarSign,
   Tag,
   Clipboard,
+  FolderKanban,
 } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -45,6 +45,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ReceiptUploader } from "@/components/ReceiptUploader";
 
 // Sample expense data
 const expenses = [
@@ -113,6 +114,14 @@ export default function Expenses() {
   const [addExpenseOpen, setAddExpenseOpen] = useState(false);
   const [captureReceiptOpen, setCaptureReceiptOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [uploadedReceiptUrl, setUploadedReceiptUrl] = useState<string | null>(null);
+  
+  // Function to handle successful receipt upload
+  const handleReceiptUploadSuccess = (filePath: string) => {
+    setUploadedReceiptUrl(filePath);
+    setCaptureReceiptOpen(false);
+    setAddExpenseOpen(true);
+  };
   
   // Filter expenses based on search term and active tab
   const filteredExpenses = expenses.filter(expense => {
@@ -137,37 +146,21 @@ export default function Expenses() {
               <Dialog open={captureReceiptOpen} onOpenChange={setCaptureReceiptOpen}>
                 <DialogTrigger asChild>
                   <Button>
-                    <Camera className="mr-2 h-4 w-4" /> Capture Receipt
+                    <Upload className="mr-2 h-4 w-4" /> Upload Receipt
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
-                    <DialogTitle>Capture Receipt</DialogTitle>
+                    <DialogTitle>Upload Receipt</DialogTitle>
                     <DialogDescription>
-                      Take a photo of your receipt to automatically extract information.
+                      Upload a receipt image and tag it with a project.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="flex flex-col items-center justify-center gap-4 py-4">
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 w-full flex flex-col items-center justify-center">
-                      <Camera className="h-12 w-12 text-muted-foreground mb-4" />
-                      <p className="text-sm text-muted-foreground text-center">
-                        Take a photo of your receipt or upload from your gallery
-                      </p>
-                      <div className="flex gap-2 mt-4">
-                        <Button variant="secondary" className="gap-2">
-                          <Camera className="h-4 w-4" />
-                          Take Photo
-                        </Button>
-                        <Button variant="outline" className="gap-2">
-                          <Upload className="h-4 w-4" />
-                          Upload
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setCaptureReceiptOpen(false)}>Cancel</Button>
-                  </DialogFooter>
+                  <ReceiptUploader 
+                    projects={projects} 
+                    onSuccess={handleReceiptUploadSuccess}
+                    onClose={() => setCaptureReceiptOpen(false)}
+                  />
                 </DialogContent>
               </Dialog>
               
@@ -185,12 +178,26 @@ export default function Expenses() {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
+                    {uploadedReceiptUrl && (
+                      <div className="mb-4">
+                        <Label htmlFor="receipt-preview">Uploaded Receipt</Label>
+                        <div className="mt-2 border rounded-md overflow-hidden">
+                          <img 
+                            src={uploadedReceiptUrl} 
+                            alt="Uploaded receipt" 
+                            className="w-full h-auto max-h-[200px] object-contain" 
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="title" className="text-right">
                         Title
                       </Label>
                       <Input id="title" className="col-span-3" />
                     </div>
+                    
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="amount" className="text-right">
                         Amount
@@ -202,18 +209,21 @@ export default function Expenses() {
                         <Input id="amount" className="pl-8" />
                       </div>
                     </div>
+                    
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="date" className="text-right">
                         Date
                       </Label>
                       <Input id="date" type="date" className="col-span-3" />
                     </div>
+                    
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="vendor" className="text-right">
                         Vendor
                       </Label>
                       <Input id="vendor" className="col-span-3" />
                     </div>
+                    
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="category" className="text-right">
                         Category
@@ -232,6 +242,7 @@ export default function Expenses() {
                         </SelectContent>
                       </Select>
                     </div>
+                    
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="project" className="text-right">
                         Project

@@ -33,6 +33,36 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_uploads: {
+        Row: {
+          description: string | null
+          file_name: string
+          file_path: string
+          id: string
+          project_id: string
+          upload_date: string
+          user_id: string
+        }
+        Insert: {
+          description?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          project_id: string
+          upload_date?: string
+          user_id: string
+        }
+        Update: {
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          project_id?: string
+          upload_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
