@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Plus, 
@@ -11,7 +10,7 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Road,
+  Route,
   DollarSign,
   Info,
 } from "lucide-react";
@@ -49,7 +48,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-// Sample trip data
 const trips = [
   {
     id: "1",
@@ -118,7 +116,6 @@ const trips = [
   },
 ];
 
-// Sample project data for dropdown
 const projects = [
   { id: "1", name: "Kitchen Renovation" },
   { id: "2", name: "Bathroom Remodel" },
@@ -131,8 +128,7 @@ export default function Trips() {
   const [addTripOpen, setAddTripOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [tripTypeFilter, setTripTypeFilter] = useState<"all" | "business" | "personal">("all");
-  
-  // Filter trips based on search term, active tab, and trip type
+
   const filteredTrips = trips.filter(trip => {
     const matchesSearch = 
       trip.startLocation.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -150,7 +146,6 @@ export default function Trips() {
     return matchesSearch && matchesTab && matchesType;
   });
 
-  // Calculate totals
   const totalDistance = filteredTrips.reduce((sum, trip) => sum + trip.distance, 0);
   const businessDistance = filteredTrips
     .filter(trip => trip.type === "Business")
@@ -159,7 +154,6 @@ export default function Trips() {
     .filter(trip => trip.type === "Personal")
     .reduce((sum, trip) => sum + trip.distance, 0);
   
-  // Calculate mileage value (using a sample rate of $0.655 per mile)
   const mileageRate = 0.655;
   const businessMileageValue = businessDistance * mileageRate;
 
@@ -432,7 +426,7 @@ export default function Trips() {
                             <span>{trip.startTime} - {trip.endTime}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Road className="h-4 w-4 text-muted-foreground" />
+                            <Route className="h-4 w-4 text-muted-foreground" />
                             <span>{trip.distance.toFixed(1)} miles</span>
                           </div>
                           <div className="flex items-center gap-2">
