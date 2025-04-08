@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,29 +16,49 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const { signIn, signUp, isLoading } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    // This would be replaced with actual authentication logic
-    setTimeout(() => {
-      setLoading(false);
-    }, 1500);
+    
+    try {
+      await signIn(email, password);
+      navigate("/");
+    } catch (error) {
+      // Error is handled in the auth context
+    }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    // This would be replaced with actual signup logic
-    setTimeout(() => {
-      setLoading(false);
-    }, 1500);
+    
+    if (password !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure your passwords match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await signUp(email, password, firstName, lastName);
+      // Navigate is not needed here because onAuthStateChange will handle it
+    } catch (error) {
+      // Error is handled in the auth context
+    }
   };
 
   return (
@@ -115,8 +135,8 @@ export default function Login() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex flex-col">
-                    <Button className="w-full" type="submit" disabled={loading}>
-                      {loading ? "Signing in..." : "Sign In"}
+                    <Button className="w-full" type="submit" disabled={isLoading}>
+                      {isLoading ? "Signing in..." : "Sign In"}
                     </Button>
                     <div className="mt-4 text-center text-sm text-muted-foreground">
                       <span>Don't have an account? </span>
@@ -144,11 +164,21 @@ export default function Login() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" required />
+                        <Input 
+                          id="firstName" 
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          required 
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" required />
+                        <Input 
+                          id="lastName"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          required 
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -160,6 +190,8 @@ export default function Login() {
                           type="email" 
                           placeholder="name@example.com" 
                           className="pl-10"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
                           required
                         />
                       </div>
@@ -172,6 +204,8 @@ export default function Login() {
                           id="signup-password" 
                           type={showPassword ? "text" : "password"} 
                           className="pl-10 pr-10"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
                           required
                         />
                         <Button
@@ -197,13 +231,15 @@ export default function Login() {
                       <Input 
                         id="confirmPassword" 
                         type={showPassword ? "text" : "password"} 
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                       />
                     </div>
                   </CardContent>
                   <CardFooter className="flex flex-col">
-                    <Button className="w-full" type="submit" disabled={loading}>
-                      {loading ? "Creating account..." : "Create Account"}
+                    <Button className="w-full" type="submit" disabled={isLoading}>
+                      {isLoading ? "Creating account..." : "Create Account"}
                     </Button>
                     <div className="mt-4 text-center text-sm text-muted-foreground">
                       <span>Already have an account? </span>
