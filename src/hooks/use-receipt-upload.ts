@@ -28,10 +28,28 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
     }
     
     const selectedFile = e.target.files[0];
+    
+    // Check if the file is an image
     if (!selectedFile.type.startsWith("image/")) {
       toast({
         title: "Invalid file type",
         description: "Please select an image file (JPEG, PNG, etc.)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if the file appears to be a HEIC file
+    const isHeic = 
+      selectedFile.name.toLowerCase().endsWith('.heic') || 
+      selectedFile.name.toLowerCase().endsWith('.heif') ||
+      selectedFile.type === 'image/heic' || 
+      selectedFile.type === 'image/heif';
+    
+    if (isHeic) {
+      toast({
+        title: "HEIC files not supported in browser",
+        description: "Please convert your HEIC file to JPEG or PNG before uploading.",
         variant: "destructive",
       });
       return;

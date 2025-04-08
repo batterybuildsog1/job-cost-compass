@@ -15,10 +15,10 @@ type ReceiptFormProps = {
   projects: Project[];
   isUploading: boolean;
   onUpload: (projectId: string, description: string) => void;
-  onCancel?: () => void;
+  onClose?: () => void;
 };
 
-export function ReceiptForm({ projects, isUploading, onUpload, onCancel }: ReceiptFormProps) {
+export function ReceiptForm({ projects, isUploading, onUpload, onClose }: ReceiptFormProps) {
   const [projectId, setProjectId] = useState<string>("");
   const [description, setDescription] = useState("");
 
@@ -56,8 +56,8 @@ export function ReceiptForm({ projects, isUploading, onUpload, onCancel }: Recei
       </div>
 
       <div className="flex gap-2 justify-end">
-        {onCancel && (
-          <Button variant="outline" onClick={onCancel} disabled={isUploading}>
+        {onClose && (
+          <Button variant="outline" onClick={onClose} disabled={isUploading}>
             Cancel
           </Button>
         )}
