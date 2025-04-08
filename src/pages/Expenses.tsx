@@ -12,7 +12,6 @@ import {
   DollarSign,
   Tag,
   Clipboard,
-  FolderKanban,
 } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
