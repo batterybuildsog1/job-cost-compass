@@ -120,9 +120,13 @@ export default function Login() {
                     </Button>
                     <div className="mt-4 text-center text-sm text-muted-foreground">
                       <span>Don't have an account? </span>
-                      <TabsTrigger value="signup" className="underline text-primary p-0 h-auto">
+                      <button 
+                        type="button"
+                        onClick={() => document.querySelector('[value="signup"]')?.dispatchEvent(new MouseEvent('click'))}
+                        className="underline text-primary p-0 h-auto bg-transparent border-none cursor-pointer"
+                      >
                         Sign up
-                      </TabsTrigger>
+                      </button>
                     </div>
                   </CardFooter>
                 </form>
@@ -203,9 +207,13 @@ export default function Login() {
                     </Button>
                     <div className="mt-4 text-center text-sm text-muted-foreground">
                       <span>Already have an account? </span>
-                      <TabsTrigger value="login" className="underline text-primary p-0 h-auto">
+                      <button 
+                        type="button"
+                        onClick={() => document.querySelector('[value="login"]')?.dispatchEvent(new MouseEvent('click'))}
+                        className="underline text-primary p-0 h-auto bg-transparent border-none cursor-pointer"
+                      >
                         Sign in
-                      </TabsTrigger>
+                      </button>
                     </div>
                   </CardFooter>
                 </form>
