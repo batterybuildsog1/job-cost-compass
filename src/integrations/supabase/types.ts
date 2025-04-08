@@ -33,6 +33,92 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_analysis: {
+        Row: {
+          analysis_date: string
+          error_message: string | null
+          id: string
+          raw_response: Json | null
+          receipt_id: string
+          status: string
+        }
+        Insert: {
+          analysis_date?: string
+          error_message?: string | null
+          id?: string
+          raw_response?: Json | null
+          receipt_id: string
+          status?: string
+        }
+        Update: {
+          analysis_date?: string
+          error_message?: string | null
+          id?: string
+          raw_response?: Json | null
+          receipt_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_analysis_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipt_items: {
+        Row: {
+          id: string
+          item_category: string | null
+          item_name: string
+          notes: string | null
+          quantity: number | null
+          receipt_analysis_id: string
+          receipt_id: string
+          total_price: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          id?: string
+          item_category?: string | null
+          item_name: string
+          notes?: string | null
+          quantity?: number | null
+          receipt_analysis_id: string
+          receipt_id: string
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          id?: string
+          item_category?: string | null
+          item_name?: string
+          notes?: string | null
+          quantity?: number | null
+          receipt_analysis_id?: string
+          receipt_id?: string
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_items_receipt_analysis_id_fkey"
+            columns: ["receipt_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_analysis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_items_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       receipt_uploads: {
         Row: {
           description: string | null

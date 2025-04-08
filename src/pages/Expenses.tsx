@@ -45,6 +45,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReceiptUploader } from "@/components/ReceiptUploader";
+import { ReceiptAnalyzer } from "@/components/ReceiptAnalyzer";
 
 // Sample expense data
 const expenses = [
@@ -114,6 +115,8 @@ export default function Expenses() {
   const [captureReceiptOpen, setCaptureReceiptOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [uploadedReceiptUrl, setUploadedReceiptUrl] = useState<string | null>(null);
+  const [analyzeReceiptOpen, setAnalyzeReceiptOpen] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState<{ id: string, url: string } | null>(null);
   
   // Function to handle successful receipt upload
   const handleReceiptUploadSuccess = (filePath: string) => {
@@ -122,6 +125,12 @@ export default function Expenses() {
     setAddExpenseOpen(true);
   };
   
+  // Function to handle receipt analysis
+  const handleAnalyzeReceipt = (receipt: { id: string, url: string }) => {
+    setSelectedReceipt(receipt);
+    setAnalyzeReceiptOpen(true);
+  };
+
   // Filter expenses based on search term and active tab
   const filteredExpenses = expenses.filter(expense => {
     const matchesSearch = 
@@ -346,6 +355,12 @@ export default function Expenses() {
                               <DropdownMenuItem>View Details</DropdownMenuItem>
                               <DropdownMenuItem>Edit</DropdownMenuItem>
                               <DropdownMenuItem>View Receipt</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleAnalyzeReceipt({
+                                id: expense.id,
+                                url: expense.receipt
+                              })}>
+                                Analyze Receipt
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive focus:text-destructive">
                                 Delete
@@ -396,6 +411,18 @@ export default function Expenses() {
           </Tabs>
         </div>
       </main>
+      
+      <Dialog open={analyzeReceiptOpen} onOpenChange={setAnalyzeReceiptOpen}>
+        <DialogContent className="max-w-4xl">
+          {selectedReceipt && (
+            <ReceiptAnalyzer 
+              receiptId={selectedReceipt.id} 
+              receiptUrl={selectedReceipt.url}
+              onClose={() => setAnalyzeReceiptOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       
       <Footer />
     </div>
