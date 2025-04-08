@@ -2,7 +2,7 @@
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import heicConvert from "heic-to";
+import * as heicConvert from "heic-to";
 
 type UseReceiptUploadProps = {
   userId?: string;
@@ -58,16 +58,19 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
           description: "Please wait while we convert your HEIC file to JPEG.",
         });
         
-        // Convert HEIC to JPEG
-        const convertedBlob = await heicConvert({
+        // Convert HEIC to JPEG using the correct heic-to API
+        const convertedBlob = await heicConvert.heic2any({
           blob: selectedFile,
           toType: "image/jpeg",
           quality: 0.8
         });
         
+        // Handle case where conversion returns an array of blobs (for multi-page HEIC files)
+        const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+        
         // Create a new file from the converted blob
         const convertedFile = new File(
-          [convertedBlob], 
+          [finalBlob], 
           selectedFile.name.replace(/\.(heic|heif)$/i, '.jpg'), 
           { type: 'image/jpeg' }
         );
@@ -75,7 +78,7 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
         setFile(convertedFile);
         
         // Create a preview URL for the converted file
-        const previewUrl = URL.createObjectURL(convertedBlob);
+        const previewUrl = URL.createObjectURL(finalBlob);
         setPreview(previewUrl);
         
         toast({
