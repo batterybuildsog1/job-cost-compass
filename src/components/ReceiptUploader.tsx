@@ -22,6 +22,7 @@ export function ReceiptUploader({ projects, onSuccess, onClose }: ReceiptUploade
     file,
     preview,
     isUploading,
+    isConverting,
     fileInputRef,
     triggerFileInput,
     handleFileChange,
@@ -48,6 +49,7 @@ export function ReceiptUploader({ projects, onSuccess, onClose }: ReceiptUploade
           fileInputRef={fileInputRef}
           onFileChange={handleFileChange}
           triggerFileInput={triggerFileInput}
+          isConverting={isConverting}
         />
       ) : (
         <FilePreview

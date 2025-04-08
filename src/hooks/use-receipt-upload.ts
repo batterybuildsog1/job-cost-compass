@@ -2,6 +2,7 @@
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import heicConvert from "heic-to";
 
 type UseReceiptUploadProps = {
   userId?: string;
@@ -11,6 +12,7 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -22,7 +24,7 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
   };
 
   // Handle file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) {
       return;
     }
@@ -30,16 +32,18 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
     const selectedFile = e.target.files[0];
     
     // Check if the file is an image
-    if (!selectedFile.type.startsWith("image/")) {
+    if (!selectedFile.type.startsWith("image/") && 
+        !selectedFile.name.toLowerCase().endsWith('.heic') &&
+        !selectedFile.name.toLowerCase().endsWith('.heif')) {
       toast({
         title: "Invalid file type",
-        description: "Please select an image file (JPEG, PNG, etc.)",
+        description: "Please select an image file (JPEG, PNG, HEIC, etc.)",
         variant: "destructive",
       });
       return;
     }
     
-    // Check if the file appears to be a HEIC file
+    // Check if the file is a HEIC file
     const isHeic = 
       selectedFile.name.toLowerCase().endsWith('.heic') || 
       selectedFile.name.toLowerCase().endsWith('.heif') ||
@@ -47,19 +51,55 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
       selectedFile.type === 'image/heif';
     
     if (isHeic) {
-      toast({
-        title: "HEIC files not supported in browser",
-        description: "Please convert your HEIC file to JPEG or PNG before uploading.",
-        variant: "destructive",
-      });
-      return;
+      try {
+        setIsConverting(true);
+        toast({
+          title: "Converting HEIC file",
+          description: "Please wait while we convert your HEIC file to JPEG.",
+        });
+        
+        // Convert HEIC to JPEG
+        const convertedBlob = await heicConvert({
+          blob: selectedFile,
+          toType: "image/jpeg",
+          quality: 0.8
+        });
+        
+        // Create a new file from the converted blob
+        const convertedFile = new File(
+          [convertedBlob], 
+          selectedFile.name.replace(/\.(heic|heif)$/i, '.jpg'), 
+          { type: 'image/jpeg' }
+        );
+        
+        setFile(convertedFile);
+        
+        // Create a preview URL for the converted file
+        const previewUrl = URL.createObjectURL(convertedBlob);
+        setPreview(previewUrl);
+        
+        toast({
+          title: "Conversion successful",
+          description: "Your HEIC file has been converted to JPEG format.",
+        });
+      } catch (error) {
+        console.error("Error converting HEIC file:", error);
+        toast({
+          title: "Conversion failed",
+          description: "There was an error converting your HEIC file. Please try with a JPEG or PNG file instead.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsConverting(false);
+      }
+    } else {
+      // Handle regular image files
+      setFile(selectedFile);
+      
+      // Create a preview URL
+      const previewUrl = URL.createObjectURL(selectedFile);
+      setPreview(previewUrl);
     }
-
-    setFile(selectedFile);
-    
-    // Create a preview URL
-    const previewUrl = URL.createObjectURL(selectedFile);
-    setPreview(previewUrl);
   };
 
   // Clear the selected file
@@ -143,6 +183,7 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
     file,
     preview,
     isUploading,
+    isConverting,
     fileInputRef,
     triggerFileInput,
     handleFileChange,
