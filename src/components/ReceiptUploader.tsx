@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Upload, File, Image, X, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ export function ReceiptUploader({ projects, onSuccess, onClose }: ReceiptUploade
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,6 +52,13 @@ export function ReceiptUploader({ projects, onSuccess, onClose }: ReceiptUploade
     // Create a preview URL
     const previewUrl = URL.createObjectURL(selectedFile);
     setPreview(previewUrl);
+  };
+
+  // Trigger file input click programmatically
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   // Clear the selected file
@@ -146,21 +154,23 @@ export function ReceiptUploader({ projects, onSuccess, onClose }: ReceiptUploade
           <p className="text-sm text-muted-foreground mb-4">
             Drag and drop a receipt image, or click to browse
           </p>
-          <Label htmlFor="receipt-upload" className="cursor-pointer">
-            <div className="flex gap-2">
-              <Button variant="secondary" size="sm" type="button">
-                <Upload className="mr-2 h-4 w-4" />
-                Select File
-              </Button>
-            </div>
-            <Input
-              id="receipt-upload"
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          </Label>
+          <Input
+            id="receipt-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+            ref={fileInputRef}
+          />
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            type="button" 
+            onClick={triggerFileInput}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Select File
+          </Button>
         </div>
       ) : (
         <div className="relative border rounded-lg overflow-hidden">
