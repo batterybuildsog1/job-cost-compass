@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-type ReceiptItem = {
+// Define our own interfaces that match the database schema
+interface ReceiptItem {
   id: string;
   item_name: string;
   quantity: number | null;
@@ -16,16 +17,16 @@ type ReceiptItem = {
   total_price: number | null;
   item_category: string | null;
   notes: string | null;
-};
+}
 
-type ReceiptAnalysis = {
+interface ReceiptAnalysis {
   id: string;
   receipt_id: string;
   status: string;
   analysis_date: string;
   raw_response: any;
   error_message: string | null;
-};
+}
 
 type ReceiptAnalyzerProps = {
   receiptId: string;
@@ -62,7 +63,8 @@ export function ReceiptAnalyzer({ receiptId, receiptUrl, onClose }: ReceiptAnaly
       }
 
       if (analysisData) {
-        setAnalysis(analysisData);
+        // Safely cast the data to our interface type
+        setAnalysis(analysisData as unknown as ReceiptAnalysis);
         
         // Load the items for this analysis
         const { data: itemsData, error: itemsError } = await supabase
@@ -73,7 +75,7 @@ export function ReceiptAnalyzer({ receiptId, receiptUrl, onClose }: ReceiptAnaly
 
         if (itemsError) throw itemsError;
         
-        setItems(itemsData || []);
+        setItems((itemsData || []) as unknown as ReceiptItem[]);
       }
     } catch (error: any) {
       console.error("Error loading existing analysis:", error);
