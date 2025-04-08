@@ -2,7 +2,7 @@
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import * as heicConvert from "heic-to";
+import heicConvert from "heic-to";
 
 type UseReceiptUploadProps = {
   userId?: string;
@@ -58,8 +58,8 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
           description: "Please wait while we convert your HEIC file to JPEG.",
         });
         
-        // Convert HEIC to JPEG using the correct heic-to API
-        const convertedBlob = await heicConvert.heic2any({
+        // Convert HEIC to JPEG using the correct API for heic-to
+        const convertedBlob = await heicConvert({
           blob: selectedFile,
           toType: "image/jpeg",
           quality: 0.8
