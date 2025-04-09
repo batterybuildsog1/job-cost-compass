@@ -102,6 +102,7 @@ export function useProjects() {
       if (error) throw error;
       
       // Add the new project to the list
+      // For new projects, set expenses and mileage to 0 instead of random values
       setProjects(prev => [
         {
           ...data,

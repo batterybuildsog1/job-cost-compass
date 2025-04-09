@@ -48,6 +48,7 @@ export function useHoursTracking(projectId?: string) {
       setTimeout(() => {
         try {
           // Filter entries by project ID if provided
+          // For new projects (not in the mock data), return an empty array
           const filteredEntries = projectId 
             ? mockHoursEntries.filter(entry => entry.project_id === projectId)
             : mockHoursEntries;

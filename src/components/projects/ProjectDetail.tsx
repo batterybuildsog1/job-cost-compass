@@ -9,42 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Receipt, Clock, Car } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ReceiptItemsBreakdown } from "@/components/receipt/ReceiptItemsBreakdown";
-
-// Mock expense data - in reality this would come from an API
-interface Expense {
-  id: string;
-  title: string;
-  amount: number;
-  date: string;
-  vendor: string;
-  category: string;
-  project: string;
-  receipt: string;
-  receipt_items?: {
-    id: string;
-    item_name: string;
-    quantity: number | null;
-    unit_price: number | null;
-    total_price: number | null;
-    item_category: string | null;
-  }[];
-}
-
-// Hours entry type
-interface HoursEntry {
-  id: string;
-  date: string;
-  hours: number;
-  description: string;
-}
-
-// Mileage entry type
-interface MileageEntry {
-  id: string;
-  date: string;
-  miles: number;
-  purpose: string;
-}
+import { useExpenses } from "@/hooks/use-expenses";
+import { useHoursTracking } from "@/hooks/use-hours-tracking";
+import { useMileageTracking } from "@/hooks/use-mileage-tracking";
 
 interface ProjectDetailProps {
   project: Project;
@@ -54,113 +21,20 @@ interface ProjectDetailProps {
 export function ProjectDetail({ project, onClose }: ProjectDetailProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("summary");
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [selectedExpense, setSelectedExpense] = useState<any | null>(null);
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
   
-  // Mock data - in a real app, you would fetch this from your backend
-  const expenses: Expense[] = [
-    {
-      id: "1",
-      title: "Building Materials",
-      amount: 325.75,
-      date: "2023-03-18",
-      vendor: "Home Depot",
-      category: "Materials",
-      project: project.name,
-      receipt: "/placeholder.svg",
-      receipt_items: [
-        {
-          id: "item1",
-          item_name: "Drywall Sheets (4x8)",
-          quantity: 10,
-          unit_price: 12.99,
-          total_price: 129.90,
-          item_category: "Materials"
-        },
-        {
-          id: "item2",
-          item_name: "Joint Compound",
-          quantity: 2,
-          unit_price: 15.95,
-          total_price: 31.90,
-          item_category: "Materials"
-        },
-        {
-          id: "item3",
-          item_name: "Drywall Screws",
-          quantity: 1,
-          unit_price: 8.99,
-          total_price: 8.99,
-          item_category: "Supplies"
-        }
-      ]
-    },
-    {
-      id: "2",
-      title: "Electrical Supplies",
-      amount: 189.99,
-      date: "2023-03-20",
-      vendor: "Electrical Warehouse",
-      category: "Supplies",
-      project: project.name,
-      receipt: "/placeholder.svg",
-      receipt_items: [
-        {
-          id: "item4",
-          item_name: "Outlet Box",
-          quantity: 15,
-          unit_price: 4.99,
-          total_price: 74.85,
-          item_category: "Electrical"
-        },
-        {
-          id: "item5",
-          item_name: "14/2 Romex Wire (100ft)",
-          quantity: 2,
-          unit_price: 45.99,
-          total_price: 91.98,
-          item_category: "Electrical"
-        }
-      ]
-    }
-  ];
-  
-  const hoursEntries: HoursEntry[] = [
-    {
-      id: "h1",
-      date: "2023-03-19",
-      hours: 8.5,
-      description: "Framing and drywall installation"
-    },
-    {
-      id: "h2",
-      date: "2023-03-20",
-      hours: 6,
-      description: "Electrical rough-in"
-    }
-  ];
-  
-  const mileageEntries: MileageEntry[] = [
-    {
-      id: "m1",
-      date: "2023-03-18",
-      miles: 28,
-      purpose: "Material pickup from Home Depot"
-    },
-    {
-      id: "m2",
-      date: "2023-03-20",
-      miles: 32,
-      purpose: "Client meeting and material pickup"
-    }
-  ];
+  // Get real data from hooks
+  const { expenses, isLoading: expensesLoading } = useExpenses(project.id);
+  const { entries: hoursEntries, isLoading: hoursLoading, getTotalHours } = useHoursTracking(project.id);
+  const { entries: mileageEntries, isLoading: mileageLoading, getTotalMileage } = useMileageTracking(project.id);
   
   // Calculate totals
   const expensesTotal = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const hoursTotal = hoursEntries.reduce((sum, entry) => sum + entry.hours, 0);
-  const mileageTotal = mileageEntries.reduce((sum, entry) => sum + entry.miles, 0);
+  const hoursTotal = getTotalHours();
+  const mileageTotal = getTotalMileage();
   
-  const handleViewExpenseDetails = (expense: Expense) => {
+  const handleViewExpenseDetails = (expense: any) => {
     setSelectedExpense(expense);
     setShowExpenseDetails(true);
   };
@@ -243,14 +117,18 @@ export function ProjectDetail({ project, onClose }: ProjectDetailProps) {
                 <CardTitle className="text-sm">Recent Expenses</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {expenses.slice(0, 3).map(expense => (
-                    <li key={expense.id} className="flex justify-between">
-                      <span className="truncate">{expense.title}</span>
-                      <span className="font-medium">${expense.amount.toFixed(2)}</span>
-                    </li>
-                  ))}
-                </ul>
+                {expenses.length > 0 ? (
+                  <ul className="space-y-2">
+                    {expenses.slice(0, 3).map(expense => (
+                      <li key={expense.id} className="flex justify-between">
+                        <span className="truncate">{expense.title}</span>
+                        <span className="font-medium">${expense.amount.toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No expenses recorded yet.</p>
+                )}
               </CardContent>
             </Card>
             
@@ -259,14 +137,18 @@ export function ProjectDetail({ project, onClose }: ProjectDetailProps) {
                 <CardTitle className="text-sm">Recent Hours</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {hoursEntries.slice(0, 3).map(entry => (
-                    <li key={entry.id} className="flex justify-between">
-                      <span className="truncate">{entry.description}</span>
-                      <span className="font-medium">{entry.hours} hrs</span>
-                    </li>
-                  ))}
-                </ul>
+                {hoursEntries.length > 0 ? (
+                  <ul className="space-y-2">
+                    {hoursEntries.slice(0, 3).map(entry => (
+                      <li key={entry.id} className="flex justify-between">
+                        <span className="truncate">{entry.description}</span>
+                        <span className="font-medium">{entry.hours} hrs</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No hours logged yet.</p>
+                )}
               </CardContent>
             </Card>
             
@@ -275,14 +157,18 @@ export function ProjectDetail({ project, onClose }: ProjectDetailProps) {
                 <CardTitle className="text-sm">Recent Mileage</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {mileageEntries.slice(0, 3).map(entry => (
-                    <li key={entry.id} className="flex justify-between">
-                      <span className="truncate">{entry.purpose}</span>
-                      <span className="font-medium">{entry.miles} mi</span>
-                    </li>
-                  ))}
-                </ul>
+                {mileageEntries.length > 0 ? (
+                  <ul className="space-y-2">
+                    {mileageEntries.slice(0, 3).map(entry => (
+                      <li key={entry.id} className="flex justify-between">
+                        <span className="truncate">{entry.purpose}</span>
+                        <span className="font-medium">{entry.miles} mi</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No mileage recorded yet.</p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -297,38 +183,47 @@ export function ProjectDetail({ project, onClose }: ProjectDetailProps) {
           </div>
           
           <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expenses.map(expense => (
-                  <TableRow key={expense.id}>
-                    <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{expense.title}</TableCell>
-                    <TableCell>{expense.category}</TableCell>
-                    <TableCell>{expense.vendor}</TableCell>
-                    <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleViewExpenseDetails(expense)}
-                      >
-                        <Receipt className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            {expenses.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {expenses.map(expense => (
+                    <TableRow key={expense.id}>
+                      <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{expense.title}</TableCell>
+                      <TableCell>{expense.category}</TableCell>
+                      <TableCell>{expense.vendor}</TableCell>
+                      <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewExpenseDetails(expense)}
+                        >
+                          <Receipt className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground mb-4">No expenses recorded for this project yet.</p>
+                <Button size="sm">
+                  <Plus className="mr-2 h-4 w-4" /> Add Your First Expense
+                </Button>
+              </div>
+            )}
           </Card>
         </TabsContent>
         
@@ -341,28 +236,37 @@ export function ProjectDetail({ project, onClose }: ProjectDetailProps) {
           </div>
           
           <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Hours</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {hoursEntries.map(entry => (
-                  <TableRow key={entry.id}>
-                    <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{entry.description}</TableCell>
-                    <TableCell className="text-right">{entry.hours}</TableCell>
+            {hoursEntries.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Hours</TableHead>
                   </TableRow>
-                ))}
-                <TableRow>
-                  <TableCell colSpan={2} className="font-medium">Total Hours</TableCell>
-                  <TableCell className="text-right font-medium">{hoursTotal}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {hoursEntries.map(entry => (
+                    <TableRow key={entry.id}>
+                      <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{entry.description}</TableCell>
+                      <TableCell className="text-right">{entry.hours}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell colSpan={2} className="font-medium">Total Hours</TableCell>
+                    <TableCell className="text-right font-medium">{hoursTotal}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground mb-4">No hours logged for this project yet.</p>
+                <Button size="sm">
+                  <Plus className="mr-2 h-4 w-4" /> Log Your First Hours
+                </Button>
+              </div>
+            )}
           </Card>
         </TabsContent>
         
@@ -375,28 +279,37 @@ export function ProjectDetail({ project, onClose }: ProjectDetailProps) {
           </div>
           
           <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Purpose</TableHead>
-                  <TableHead className="text-right">Miles</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mileageEntries.map(entry => (
-                  <TableRow key={entry.id}>
-                    <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{entry.purpose}</TableCell>
-                    <TableCell className="text-right">{entry.miles}</TableCell>
+            {mileageEntries.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Purpose</TableHead>
+                    <TableHead className="text-right">Miles</TableHead>
                   </TableRow>
-                ))}
-                <TableRow>
-                  <TableCell colSpan={2} className="font-medium">Total Mileage</TableCell>
-                  <TableCell className="text-right font-medium">{mileageTotal}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {mileageEntries.map(entry => (
+                    <TableRow key={entry.id}>
+                      <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{entry.purpose}</TableCell>
+                      <TableCell className="text-right">{entry.miles}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell colSpan={2} className="font-medium">Total Mileage</TableCell>
+                    <TableCell className="text-right font-medium">{mileageTotal}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground mb-4">No mileage recorded for this project yet.</p>
+                <Button size="sm">
+                  <Plus className="mr-2 h-4 w-4" /> Record Your First Mileage
+                </Button>
+              </div>
+            )}
           </Card>
         </TabsContent>
       </Tabs>
@@ -433,11 +346,15 @@ export function ProjectDetail({ project, onClose }: ProjectDetailProps) {
                 </div>
               </div>
               
-              {selectedExpense.receipt_items && selectedExpense.receipt_items.length > 0 && (
+              {selectedExpense.receipt_items && selectedExpense.receipt_items.length > 0 ? (
                 <ReceiptItemsBreakdown 
                   items={selectedExpense.receipt_items} 
                   receiptTotal={selectedExpense.amount}
                 />
+              ) : (
+                <div className="mt-4 p-4 border rounded-md bg-muted/50">
+                  <p className="text-sm text-muted-foreground text-center">No receipt items available for this expense.</p>
+                </div>
               )}
             </div>
           )}

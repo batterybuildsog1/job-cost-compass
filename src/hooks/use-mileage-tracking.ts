@@ -48,6 +48,7 @@ export function useMileageTracking(projectId?: string) {
       setTimeout(() => {
         try {
           // Filter entries by project ID if provided
+          // For new projects (not in the mock data), return an empty array
           const filteredEntries = projectId 
             ? mockMileageEntries.filter(entry => entry.project_id === projectId)
             : mockMileageEntries;
