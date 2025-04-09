@@ -244,7 +244,7 @@ async function analyzeReceiptWithGemini(imageUrl: string) {
     Only respond with valid JSON, no additional text. If you're not sure about any value, use null.
   `;
   
-  // Call Gemini with search grounding
+  // Call Gemini API - Fixed: Removed the google_search_tool which was causing the error
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
@@ -268,12 +268,8 @@ async function analyzeReceiptWithGemini(imageUrl: string) {
         temperature: 0.2,
         top_p: 0.95,
         top_k: 40
-      },
-      tools: [
-        {
-          google_search_tool: {}
-        }
-      ]
+      }
+      // Removed the problematic tools configuration that was causing the error
     })
   });
   
