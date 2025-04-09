@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, Loader2 } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { useProjects } from "@/hooks/use-projects";
 import { ExpenseList } from "@/components/expenses/ExpenseList";
 import { ExpenseToolbar } from "@/components/expenses/ExpenseToolbar";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
+import { useExpenseForm } from "@/hooks/use-expense-form";
 
 // Sample expenses data
 const expenses = [
@@ -73,46 +73,23 @@ export default function Expenses() {
   const [addExpenseOpen, setAddExpenseOpen] = useState(false);
   const [captureReceiptOpen, setCaptureReceiptOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
-  const [uploadedReceiptUrl, setUploadedReceiptUrl] = useState<string | null>(null);
   const [analyzeReceiptOpen, setAnalyzeReceiptOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<{ id: string, url: string } | null>(null);
   
-  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState("");
-  const [vendor, setVendor] = useState("");
-  const [category, setCategory] = useState("");
-  const [projectId, setProjectId] = useState("");
-  const [isAutoFilling, setIsAutoFilling] = useState(false);
-  
   const { projects, isLoading: projectsLoading } = useProjects();
-  
-  const handleReceiptUploadSuccess = (filePath: string, extractedData?: ReceiptData) => {
-    setUploadedReceiptUrl(filePath);
-    setCaptureReceiptOpen(false);
-    setAddExpenseOpen(true);
-    
-    if (extractedData) {
-      setReceiptData(extractedData);
-      setIsAutoFilling(true);
-      
-      setTimeout(() => {
-        if (extractedData.vendorName) setVendor(extractedData.vendorName);
-        if (extractedData.receiptTotal) setAmount(extractedData.receiptTotal.toString());
-        if (extractedData.receiptDate) {
-          try {
-            const parsedDate = new Date(extractedData.receiptDate);
-            setDate(format(parsedDate, 'yyyy-MM-dd'));
-          } catch (e) {
-            console.error("Error parsing date:", e);
-            setDate("");
-          }
-        }
-        setIsAutoFilling(false);
-      }, 1500);
-    }
-  };
+  const { 
+    title, setTitle, 
+    amount, setAmount, 
+    date, setDate, 
+    vendor, setVendor, 
+    category, setCategory, 
+    projectId, setProjectId, 
+    uploadedReceiptUrl, setUploadedReceiptUrl,
+    receiptData, setReceiptData,
+    isAutoFilling, setIsAutoFilling,
+    handleReceiptUploadSuccess,
+    resetFormState
+  } = useExpenseForm();
   
   const handleAnalyzeReceipt = (receipt: { id: string, url: string }) => {
     setSelectedReceipt(receipt);
@@ -121,14 +98,7 @@ export default function Expenses() {
 
   const handleAddExpenseClose = () => {
     setAddExpenseOpen(false);
-    setUploadedReceiptUrl(null);
-    setReceiptData(null);
-    setTitle("");
-    setAmount("");
-    setDate("");
-    setVendor("");
-    setCategory("");
-    setProjectId("");
+    resetFormState();
   };
 
   const handleSaveExpense = () => {
@@ -167,7 +137,11 @@ export default function Expenses() {
                   ) : (
                     <ReceiptUploader 
                       projects={projects} 
-                      onSuccess={handleReceiptUploadSuccess}
+                      onSuccess={(filePath, extractedData) => {
+                        handleReceiptUploadSuccess(filePath, extractedData);
+                        setCaptureReceiptOpen(false);
+                        setAddExpenseOpen(true);
+                      }}
                       onClose={() => setCaptureReceiptOpen(false)}
                     />
                   )}
