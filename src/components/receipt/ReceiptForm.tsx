@@ -1,10 +1,11 @@
 
 import { useState } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type Project = {
   id: string;
@@ -16,9 +17,10 @@ type ReceiptFormProps = {
   isUploading: boolean;
   onUpload: (projectId: string, description: string) => void;
   onClose?: () => void;
+  error?: string | null;
 };
 
-export function ReceiptForm({ projects, isUploading, onUpload, onClose }: ReceiptFormProps) {
+export function ReceiptForm({ projects, isUploading, onUpload, onClose, error }: ReceiptFormProps) {
   const [projectId, setProjectId] = useState<string>("");
   const [description, setDescription] = useState("");
 
@@ -28,6 +30,13 @@ export function ReceiptForm({ projects, isUploading, onUpload, onClose }: Receip
 
   return (
     <div className="space-y-3">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <div className="space-y-1">
         <Label htmlFor="project-select">Project</Label>
         <Select value={projectId} onValueChange={setProjectId}>

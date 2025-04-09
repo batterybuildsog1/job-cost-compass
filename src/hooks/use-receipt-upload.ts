@@ -84,7 +84,7 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
         description: "Please select a file and project before uploading",
         variant: "destructive",
       });
-      return null;
+      return { fileUrl: null, receiptId: null };
     }
 
     try {
@@ -110,7 +110,7 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
         .getPublicUrl(filePath);
         
       // Save metadata to the receipt_uploads table
-      const { error: metadataError } = await supabase
+      const { data: receiptData, error: metadataError } = await supabase
         .from('receipt_uploads')
         .insert({
           user_id: userId,
@@ -118,7 +118,9 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
           file_path: filePath,
           file_name: file.name,
           description: description || null
-        } as any); // Using 'as any' to bypass TypeScript checking for now
+        })
+        .select('id')
+        .single();
         
       if (metadataError) {
         throw metadataError;
@@ -129,7 +131,10 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
         description: "Your receipt has been successfully uploaded",
       });
       
-      return publicUrlData.publicUrl;
+      return { 
+        fileUrl: publicUrlData.publicUrl, 
+        receiptId: receiptData.id 
+      };
       
     } catch (error: any) {
       console.error("Error uploading receipt:", error);
@@ -138,7 +143,7 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
         description: error.message || "There was an error uploading your receipt",
         variant: "destructive",
       });
-      return null;
+      return { fileUrl: null, receiptId: null };
     } finally {
       setIsUploading(false);
     }

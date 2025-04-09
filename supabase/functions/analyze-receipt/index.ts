@@ -131,6 +131,7 @@ serve(async (req) => {
               }
             }
             
+            // Return the analysis results for the client to use
             return new Response(
               JSON.stringify({ 
                 success: true, 

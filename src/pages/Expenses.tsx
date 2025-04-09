@@ -12,6 +12,8 @@ import {
   DollarSign,
   Tag,
   Clipboard,
+  Loader2,
+  Info
 } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -22,7 +24,8 @@ import {
   CardContent,
   CardFooter,
   CardHeader,
-  CardTitle
+  CardTitle,
+  CardDescription
 } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -44,10 +47,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ReceiptUploader } from "@/components/ReceiptUploader";
+import { ReceiptUploader, ReceiptData } from "@/components/ReceiptUploader";
 import { ReceiptAnalyzer } from "@/components/ReceiptAnalyzer";
+import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns";
 
-// Sample expense data
 const expenses = [
   {
     id: "1",
@@ -101,7 +106,6 @@ const expenses = [
   },
 ];
 
-// Sample project data for dropdown
 const projects = [
   { id: "1", name: "Kitchen Renovation" },
   { id: "2", name: "Bathroom Remodel" },
@@ -118,20 +122,46 @@ export default function Expenses() {
   const [analyzeReceiptOpen, setAnalyzeReceiptOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<{ id: string, url: string } | null>(null);
   
-  // Function to handle successful receipt upload
-  const handleReceiptUploadSuccess = (filePath: string) => {
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const [title, setTitle] = useState("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState("");
+  const [vendor, setVendor] = useState("");
+  const [category, setCategory] = useState("");
+  const [projectId, setProjectId] = useState("");
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
+  
+  const handleReceiptUploadSuccess = (filePath: string, extractedData?: ReceiptData) => {
     setUploadedReceiptUrl(filePath);
     setCaptureReceiptOpen(false);
     setAddExpenseOpen(true);
+    
+    if (extractedData) {
+      setReceiptData(extractedData);
+      setIsAutoFilling(true);
+      
+      setTimeout(() => {
+        if (extractedData.vendorName) setVendor(extractedData.vendorName);
+        if (extractedData.receiptTotal) setAmount(extractedData.receiptTotal.toString());
+        if (extractedData.receiptDate) {
+          try {
+            const parsedDate = new Date(extractedData.receiptDate);
+            setDate(format(parsedDate, 'yyyy-MM-dd'));
+          } catch (e) {
+            console.error("Error parsing date:", e);
+            setDate("");
+          }
+        }
+        setIsAutoFilling(false);
+      }, 1500);
+    }
   };
   
-  // Function to handle receipt analysis
   const handleAnalyzeReceipt = (receipt: { id: string, url: string }) => {
     setSelectedReceipt(receipt);
     setAnalyzeReceiptOpen(true);
   };
 
-  // Filter expenses based on search term and active tab
   const filteredExpenses = expenses.filter(expense => {
     const matchesSearch = 
       expense.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -141,6 +171,18 @@ export default function Expenses() {
     if (activeTab === "all") return matchesSearch;
     return matchesSearch && expense.project.toLowerCase().includes(activeTab.toLowerCase());
   });
+
+  const handleAddExpenseClose = () => {
+    setAddExpenseOpen(false);
+    setUploadedReceiptUrl(null);
+    setReceiptData(null);
+    setTitle("");
+    setAmount("");
+    setDate("");
+    setVendor("");
+    setCategory("");
+    setProjectId("");
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -172,105 +214,163 @@ export default function Expenses() {
                 </DialogContent>
               </Dialog>
               
-              <Dialog open={addExpenseOpen} onOpenChange={setAddExpenseOpen}>
+              <Dialog open={addExpenseOpen} onOpenChange={handleAddExpenseClose}>
                 <DialogTrigger asChild>
                   <Button variant="outline">
                     <Plus className="mr-2 h-4 w-4" /> Add Manually
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[800px]">
                   <DialogHeader>
                     <DialogTitle>Add Expense</DialogTitle>
                     <DialogDescription>
-                      Enter the expense details manually.
+                      {receiptData 
+                        ? "We've analyzed your receipt. Review the details and make any needed adjustments."
+                        : "Enter the expense details manually."
+                      }
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
                     {uploadedReceiptUrl && (
-                      <div className="mb-4">
-                        <Label htmlFor="receipt-preview">Uploaded Receipt</Label>
-                        <div className="mt-2 border rounded-md overflow-hidden">
+                      <div className="space-y-4">
+                        <h3 className="font-medium text-sm">Uploaded Receipt</h3>
+                        <div className="border rounded-md overflow-hidden bg-muted/20">
                           <img 
                             src={uploadedReceiptUrl} 
                             alt="Uploaded receipt" 
-                            className="w-full h-auto max-h-[200px] object-contain" 
+                            className="w-full h-auto max-h-[400px] object-contain" 
                           />
                         </div>
+                        
+                        {receiptData && (
+                          <Card>
+                            <CardHeader className="py-3">
+                              <CardTitle className="text-sm font-medium">AI Analysis Results</CardTitle>
+                            </CardHeader>
+                            <CardContent className="py-2 space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Items Found:</span>
+                                <span className="font-medium">{receiptData.itemCount || 0}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Vendor:</span>
+                                <span className="font-medium">{receiptData.vendorName || "Unknown"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Date:</span>
+                                <span className="font-medium">{receiptData.receiptDate || "Unknown"}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Total Amount:</span>
+                                <span className="font-medium">
+                                  {receiptData.receiptTotal 
+                                    ? `$${Number(receiptData.receiptTotal).toFixed(2)}`
+                                    : "Unknown"
+                                  }
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
                       </div>
                     )}
                     
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="title" className="text-right">
-                        Title
-                      </Label>
-                      <Input id="title" className="col-span-3" />
-                    </div>
-                    
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="amount" className="text-right">
-                        Amount
-                      </Label>
-                      <div className="col-span-3 relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                          $
-                        </span>
-                        <Input id="amount" className="pl-8" />
+                    <div className="space-y-4">
+                      {isAutoFilling && (
+                        <div className="mb-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Auto-filling form...</span>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                          <Progress value={65} className="h-2" />
+                        </div>
+                      )}
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="title">Title</Label>
+                        <Input 
+                          id="title" 
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          placeholder="e.g. Building Materials"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="amount">Amount</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                            $
+                          </span>
+                          <Input 
+                            id="amount" 
+                            className="pl-8" 
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="date">Date</Label>
+                        <Input 
+                          id="date" 
+                          type="date" 
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="vendor">Vendor</Label>
+                        <Input 
+                          id="vendor" 
+                          value={vendor}
+                          onChange={(e) => setVendor(e.target.value)}
+                          placeholder="e.g. Home Depot"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="category">Category</Label>
+                        <Select value={category} onValueChange={setCategory}>
+                          <SelectTrigger id="category">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="materials">Materials</SelectItem>
+                            <SelectItem value="supplies">Supplies</SelectItem>
+                            <SelectItem value="equipment">Equipment</SelectItem>
+                            <SelectItem value="fixtures">Fixtures</SelectItem>
+                            <SelectItem value="labor">Labor</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="project">Project</Label>
+                        <Select value={projectId} onValueChange={setProjectId}>
+                          <SelectTrigger id="project">
+                            <SelectValue placeholder="Select project" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {projects.map(project => (
+                              <SelectItem key={project.id} value={project.id}>
+                                {project.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                    
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="date" className="text-right">
-                        Date
-                      </Label>
-                      <Input id="date" type="date" className="col-span-3" />
-                    </div>
-                    
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="vendor" className="text-right">
-                        Vendor
-                      </Label>
-                      <Input id="vendor" className="col-span-3" />
-                    </div>
-                    
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="category" className="text-right">
-                        Category
-                      </Label>
-                      <Select>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="materials">Materials</SelectItem>
-                          <SelectItem value="supplies">Supplies</SelectItem>
-                          <SelectItem value="equipment">Equipment</SelectItem>
-                          <SelectItem value="fixtures">Fixtures</SelectItem>
-                          <SelectItem value="labor">Labor</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="project" className="text-right">
-                        Project
-                      </Label>
-                      <Select>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select project" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {projects.map(project => (
-                            <SelectItem key={project.id} value={project.id}>
-                              {project.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
+                  
                   <DialogFooter>
-                    <Button type="submit" onClick={() => setAddExpenseOpen(false)}>Save Expense</Button>
+                    <Button variant="outline" onClick={handleAddExpenseClose}>Cancel</Button>
+                    <Button type="submit">Save Expense</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>

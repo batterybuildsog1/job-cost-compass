@@ -1,7 +1,8 @@
 
-import { Upload } from "lucide-react";
+import { Upload, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type UploadAreaProps = {
   fileInputRef: React.RefObject<HTMLInputElement>;
@@ -16,8 +17,18 @@ export function UploadArea({ fileInputRef, onFileChange, triggerFileInput }: Upl
       <p className="text-sm text-muted-foreground mb-4">
         Drag and drop a receipt image, or click to browse
       </p>
-      <p className="text-xs text-muted-foreground mb-4">
-        Supports JPEG, PNG, and HEIC formats
+      <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1">
+        Supports JPEG, PNG, and HEIC formats 
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3 w-3 cursor-help ml-1" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>HEIC files don't display a preview</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </p>
       <Input
         id="receipt-upload"
