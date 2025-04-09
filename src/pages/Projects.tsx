@@ -18,12 +18,12 @@ export default function Projects() {
   const [sortBy, setSortBy] = useState<"name" | "date">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   
-  const { projects, isLoading, create, update, remove } = useProjects();
+  const { projects, isLoading, createProject, updateProject, deleteProject } = useProjects();
   const { toast } = useToast();
   
   const handleCreateProject = async (data: Omit<Project, "id" | "created_at" | "updated_at">) => {
     try {
-      await create(data);
+      await createProject(data);
       setIsAddOpen(false);
       toast({
         title: "Project created",
@@ -41,7 +41,7 @@ export default function Projects() {
   
   const handleUpdateProject = async (project: Project) => {
     try {
-      await update(project);
+      await updateProject(project.id, project);
       toast({
         title: "Project updated",
         description: "Your project has been updated successfully.",
@@ -58,7 +58,7 @@ export default function Projects() {
   
   const handleDeleteProject = async (id: string): Promise<void> => {
     try {
-      const success = await remove(id);
+      const success = await deleteProject(id);
       
       if (success) {
         toast({

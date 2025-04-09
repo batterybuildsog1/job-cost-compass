@@ -10,6 +10,9 @@ interface ProjectFormProps {
   onSubmit: (data: ProjectFormData) => Promise<void>;
   onCancel?: () => void;
   defaultValues?: ProjectFormData;
+  title?: string;
+  description?: string;
+  submitLabel?: string;
 }
 
 export interface ProjectFormData {
@@ -19,7 +22,14 @@ export interface ProjectFormData {
   description?: string;
 }
 
-export function ProjectForm({ onSubmit, onCancel, defaultValues }: ProjectFormProps) {
+export function ProjectForm({ 
+  onSubmit, 
+  onCancel, 
+  defaultValues,
+  title,
+  description,
+  submitLabel = "Save Project"
+}: ProjectFormProps) {
   const { 
     register, 
     handleSubmit, 
@@ -35,6 +45,9 @@ export function ProjectForm({ onSubmit, onCancel, defaultValues }: ProjectFormPr
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
+      {title && <h2 className="text-lg font-semibold">{title}</h2>}
+      {description && <p className="text-sm text-muted-foreground mt-2 mb-4">{description}</p>}
+      
       <div className="grid gap-4 py-4">
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="name" className="text-right">
@@ -91,7 +104,7 @@ export function ProjectForm({ onSubmit, onCancel, defaultValues }: ProjectFormPr
               Saving...
             </>
           ) : (
-            'Save Project'
+            submitLabel
           )}
         </Button>
       </DialogFooter>

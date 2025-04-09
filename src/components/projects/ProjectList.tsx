@@ -9,33 +9,54 @@ import { Button } from "@/components/ui/button";
 
 interface ProjectListProps {
   projects: Project[];
-  searchTerm: string;
-  projectView: "grid" | "list";
+  filter: string;
+  sortBy: "name" | "date";
+  sortOrder: "asc" | "desc";
   isLoading: boolean;
-  deleteProject: (id: string) => Promise<void>;
-  setAddProjectOpen: (open: boolean) => void;
+  onEdit: (project: Project) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onAdd: () => void;
 }
 
 export function ProjectList({ 
   projects, 
-  searchTerm, 
-  projectView, 
+  filter, 
+  sortBy, 
+  sortOrder, 
   isLoading, 
-  deleteProject,
-  setAddProjectOpen
+  onEdit,
+  onDelete,
+  onAdd
 }: ProjectListProps) {
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter projects based on search term
   const filteredProjects = projects.filter(project => 
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (project.client?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
+    project.name.toLowerCase().includes(filter.toLowerCase()) ||
+    (project.client?.toLowerCase().includes(filter.toLowerCase()) || false)
   );
+
+  // Sort the projects
+  const sortedProjects = [...filteredProjects].sort((a, b) => {
+    if (sortBy === "name") {
+      const comparison = a.name.localeCompare(b.name);
+      return sortOrder === "asc" ? comparison : -comparison;
+    } else {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+    }
+  });
 
   const handleDeleteProject = async (id: string) => {
     setIsDeleting(true);
-    await deleteProject(id);
+    setProjectToDelete(id);
+    try {
+      await onDelete(id);
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+    }
     setProjectToDelete(null);
     setIsDeleting(false);
   };
@@ -49,7 +70,7 @@ export function ProjectList({
     );
   }
 
-  if (filteredProjects.length === 0) {
+  if (sortedProjects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="rounded-full bg-muted p-6 mb-4">
@@ -57,12 +78,12 @@ export function ProjectList({
         </div>
         <h2 className="text-xl font-semibold mb-2">No projects found</h2>
         <p className="text-muted-foreground max-w-md mb-6">
-          {searchTerm ? 
-            `No projects match "${searchTerm}". Try a different search term.` : 
+          {filter ? 
+            `No projects match "${filter}". Try a different search term.` : 
             "You haven't created any projects yet. Create your first project to get started."}
         </p>
-        {!searchTerm && (
-          <Button onClick={() => setAddProjectOpen(true)}>
+        {!filter && (
+          <Button onClick={onAdd}>
             <Plus className="mr-2 h-4 w-4" /> Add Your First Project
           </Button>
         )}
@@ -70,38 +91,17 @@ export function ProjectList({
     );
   }
 
-  if (projectView === "grid") {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProjects.map((project) => (
-          <ProjectCard 
-            key={project.id} 
-            project={project} 
-            onDelete={handleDeleteProject}
-            isDeleting={isDeleting}
-            projectToDelete={projectToDelete}
-            setProjectToDelete={setProjectToDelete}
-          />
-        ))}
-      </div>
-    );
-  }
-
   return (
-    <div className="rounded-md border">
-      <div className="grid grid-cols-12 p-4 text-sm font-medium text-muted-foreground bg-muted">
-        <div className="col-span-4">Project</div>
-        <div className="col-span-2">Status</div>
-        <div className="col-span-2">Start Date</div>
-        <div className="col-span-2">Expenses</div>
-        <div className="col-span-1">Mileage</div>
-        <div className="col-span-1"></div>
-      </div>
-      {filteredProjects.map((project) => (
-        <ProjectListItem 
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {sortedProjects.map((project) => (
+        <ProjectCard 
           key={project.id} 
           project={project} 
-          onDelete={deleteProject} 
+          onEdit={onEdit}
+          onDelete={handleDeleteProject}
+          isDeleting={isDeleting}
+          projectToDelete={projectToDelete}
+          setProjectToDelete={setProjectToDelete}
         />
       ))}
     </div>

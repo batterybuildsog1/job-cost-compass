@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Pencil, Trash2, CheckCircle, Clock, AlertTriangle, Loader2 } from "lucide-react";
 import { FolderKanban } from "./icons";
 import { Project } from "@/hooks/use-projects";
 import { 
@@ -17,18 +17,28 @@ import {
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ProjectForm } from "./ProjectForm";
+import { ProjectForm, ProjectFormData } from "./ProjectForm";
 
 interface ProjectCardProps {
   project: Project;
-  onEdit: (project: Project) => void;
+  onEdit: (project: Project) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  isDeleting?: boolean;
+  projectToDelete?: string | null;
+  setProjectToDelete?: (id: string | null) => void;
 }
 
-export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
+export function ProjectCard({ 
+  project, 
+  onEdit, 
+  onDelete, 
+  isDeleting = false, 
+  projectToDelete = null, 
+  setProjectToDelete = () => {}
+}: ProjectCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const getStatusIcon = () => {
     switch (project.status.toLowerCase()) {
@@ -44,14 +54,27 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
   };
 
   const handleDelete = async () => {
-    setIsDeleting(true);
+    setProjectToDelete(project.id);
     try {
       await onDelete(project.id);
     } catch (error) {
       console.error("Error deleting project:", error);
     }
-    setIsDeleting(false);
     setIsDeleteOpen(false);
+  };
+
+  const handleSubmit = async (values: ProjectFormData) => {
+    setIsSubmitting(true);
+    try {
+      await onEdit({
+        ...project,
+        ...values
+      });
+      setIsEditOpen(false);
+    } catch (error) {
+      console.error("Error updating project:", error);
+    }
+    setIsSubmitting(false);
   };
 
   return (
@@ -93,13 +116,7 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
               title="Edit Project" 
               description="Update your project details." 
               defaultValues={project}
-              onSubmit={(values) => {
-                onEdit({
-                  ...project,
-                  ...values
-                });
-                setIsEditOpen(false);
-              }}
+              onSubmit={handleSubmit}
               submitLabel="Save Changes"
             />
           </DialogContent>
@@ -123,10 +140,17 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction 
                 onClick={handleDelete} 
-                disabled={isDeleting}
+                disabled={isDeleting && projectToDelete === project.id}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {isDeleting ? "Deleting..." : "Delete Project"}
+                {isDeleting && projectToDelete === project.id ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Project"
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
