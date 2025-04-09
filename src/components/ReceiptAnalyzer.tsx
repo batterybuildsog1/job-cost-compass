@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ReceiptItemsBreakdown } from "@/components/receipt/ReceiptItemsBreakdown";
 
 // Define our own interfaces that match the database schema
 interface ReceiptItem {
@@ -120,6 +121,9 @@ export function ReceiptAnalyzer({ receiptId, receiptUrl, onClose }: ReceiptAnaly
     }
   };
 
+  // Calculate total from items
+  const receiptTotal = items.reduce((sum, item) => sum + (item.total_price || 0), 0);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center gap-4">
@@ -215,6 +219,13 @@ export function ReceiptAnalyzer({ receiptId, receiptUrl, onClose }: ReceiptAnaly
                   <p className="text-sm font-medium mb-1">Items Extracted:</p>
                   <p className="text-2xl font-bold">{items.length}</p>
                 </div>
+                
+                {items.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Receipt Total:</p>
+                    <p className="text-2xl font-bold">${receiptTotal.toFixed(2)}</p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -231,57 +242,13 @@ export function ReceiptAnalyzer({ receiptId, receiptUrl, onClose }: ReceiptAnaly
       
       {/* Extracted Items */}
       {items.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Extracted Items</CardTitle>
-            <CardDescription>
-              {items.length} item{items.length !== 1 ? 's' : ''} found on this receipt
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item</TableHead>
-                  <TableHead className="w-[100px] text-right">Quantity</TableHead>
-                  <TableHead className="w-[120px] text-right">Unit Price</TableHead>
-                  <TableHead className="w-[120px] text-right">Total</TableHead>
-                  <TableHead className="w-[120px]">Category</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.item_name}</TableCell>
-                    <TableCell className="text-right">{item.quantity !== null ? item.quantity : '-'}</TableCell>
-                    <TableCell className="text-right">
-                      {item.unit_price !== null ? `$${item.unit_price.toFixed(2)}` : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.total_price !== null ? `$${item.total_price.toFixed(2)}` : '-'}
-                    </TableCell>
-                    <TableCell>
-                      {item.item_category ? (
-                        <Badge variant="outline">{item.item_category}</Badge>
-                      ) : '-'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-          <CardFooter className="flex justify-end border-t p-4">
-            <Button onClick={onClose}>Close</Button>
-          </CardFooter>
-        </Card>
+        <ReceiptItemsBreakdown items={items} receiptTotal={receiptTotal} />
       )}
       
       {/* Footer Actions */}
-      {items.length === 0 && !isAnalyzing && (
-        <div className="flex justify-end">
-          <Button onClick={onClose}>Close</Button>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <Button onClick={onClose}>Close</Button>
+      </div>
     </div>
   );
 }

@@ -1,23 +1,14 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, CheckCircle, Clock, AlertTriangle, Loader2 } from "lucide-react";
-import { FolderKanban } from "./icons";
+import { Pencil, Trash2, MoreHorizontal, FolderOpen } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Project } from "@/hooks/use-projects";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ProjectForm, ProjectFormData } from "./ProjectForm";
+import { ProjectForm, ProjectFormData } from "@/components/projects/ProjectForm";
+import { ProjectDetail } from "@/components/projects/ProjectDetail";
 
 interface ProjectCardProps {
   project: Project;
@@ -31,131 +22,166 @@ interface ProjectCardProps {
 export function ProjectCard({ 
   project, 
   onEdit, 
-  onDelete, 
-  isDeleting = false, 
-  projectToDelete = null, 
-  setProjectToDelete = () => {}
+  onDelete,
+  isDeleting = false,
+  projectToDelete = null,
+  setProjectToDelete
 }: ProjectCardProps) {
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   
-  const getStatusIcon = () => {
-    switch (project.status.toLowerCase()) {
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'in progress':
-        return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'at risk':
-        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-slate-500" />;
-    }
+  const handleEdit = async (values: ProjectFormData) => {
+    await onEdit({
+      ...project,
+      name: values.name,
+      client: values.client || null,
+      status: values.status || "Pending",
+      description: values.description || null
+    });
+    setIsEditDialogOpen(false);
   };
-
+  
   const handleDelete = async () => {
-    setProjectToDelete(project.id);
-    try {
-      await onDelete(project.id);
-    } catch (error) {
-      console.error("Error deleting project:", error);
+    if (setProjectToDelete) {
+      setProjectToDelete(project.id);
     }
-    setIsDeleteOpen(false);
-  };
-
-  const handleSubmit = async (values: ProjectFormData) => {
-    setIsSubmitting(true);
-    try {
-      await onEdit({
-        ...project,
-        ...values
-      });
-      setIsEditOpen(false);
-    } catch (error) {
-      console.error("Error updating project:", error);
+    
+    await onDelete(project.id);
+    
+    if (setProjectToDelete) {
+      setProjectToDelete(null);
     }
-    setIsSubmitting(false);
+    
+    setIsDeleteAlertOpen(false);
   };
+  
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+  
+  const isCurrentProjectDeleting = isDeleting && projectToDelete === project.id;
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="rounded-full bg-primary/10 p-2 h-8 w-8 flex items-center justify-center">
-            <FolderKanban className="h-4 w-4 text-primary" />
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-lg font-semibold truncate">{project.name}</CardTitle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsDetailOpen(true)}>
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  View Details
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsDeleteAlertOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <div className="flex items-center gap-1 text-xs font-medium">
-            {getStatusIcon()}
-            <span>{project.status}</span>
+        </CardHeader>
+        <CardContent className="pb-3">
+          <div className="space-y-3">
+            {project.client && (
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Client:</span>
+                <span className="text-sm font-medium">{project.client}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Status:</span>
+              <span className="text-sm font-medium">{project.status}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Created:</span>
+              <span className="text-sm font-medium">{formatDate(project.created_at)}</span>
+            </div>
+            {project.description && (
+              <div>
+                <span className="text-sm text-muted-foreground">Description:</span>
+                <p className="text-sm mt-1 line-clamp-2">{project.description}</p>
+              </div>
+            )}
           </div>
-        </div>
-        <CardTitle className="mt-2 text-xl">{project.name}</CardTitle>
-        <CardDescription className="line-clamp-2">
-          {project.description || "No description provided"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 pb-2">
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Client:</span>
-            <span className="font-medium">{project.client || "Not specified"}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Start Date:</span>
-            <span className="font-medium">{new Date(project.start_date).toLocaleDateString()}</span>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="pt-2 border-t flex justify-between">
-        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
-            <Pencil className="h-4 w-4 mr-1" /> Edit
+        </CardContent>
+        <CardFooter className="pt-0">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full"
+            onClick={() => setIsDetailOpen(true)}
+          >
+            <FolderOpen className="mr-2 h-4 w-4" />
+            View Project Details
           </Button>
-          <DialogContent className="sm:max-w-[550px]">
-            <ProjectForm 
-              title="Edit Project" 
-              description="Update your project details." 
-              defaultValues={project}
-              onSubmit={handleSubmit}
-              submitLabel="Save Changes"
-            />
-          </DialogContent>
-        </Dialog>
-        
-        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm" className="text-destructive border-destructive/50 hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4 mr-1" /> Delete
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete the project "{project.name}" and all associated data.
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleDelete} 
-                disabled={isDeleting && projectToDelete === project.id}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {isDeleting && projectToDelete === project.id ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete Project"
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </CardFooter>
-    </Card>
+        </CardFooter>
+      </Card>
+      
+      {/* Edit Project Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogTitle>Edit Project</DialogTitle>
+          <ProjectForm
+            defaultValues={{
+              name: project.name,
+              client: project.client || undefined,
+              status: project.status,
+              description: project.description || undefined
+            }}
+            onSubmit={handleEdit}
+            onCancel={() => setIsEditDialogOpen(false)}
+            submitLabel="Save Changes"
+          />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Project Alert */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the project "{project.name}" and all associated data.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              disabled={isCurrentProjectDeleting}
+            >
+              {isCurrentProjectDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Project Detail Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <ProjectDetail 
+            project={project} 
+            onClose={() => setIsDetailOpen(false)} 
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
