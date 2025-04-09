@@ -2,7 +2,6 @@
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import heicConvert from "heic-to";
 
 type UseReceiptUploadProps = {
   userId?: string;
@@ -12,7 +11,7 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [isConverting, setIsConverting] = useState(false);
+  const [isHeicFile, setIsHeicFile] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,58 +49,20 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
       selectedFile.type === 'image/heic' || 
       selectedFile.type === 'image/heif';
     
-    if (isHeic) {
-      try {
-        setIsConverting(true);
-        toast({
-          title: "Converting HEIC file",
-          description: "Please wait while we convert your HEIC file to JPEG.",
-        });
-        
-        // Convert HEIC to JPEG using the correct API for heic-to
-        const convertedBlob = await heicConvert({
-          blob: selectedFile,
-          toType: "image/jpeg",
-          quality: 0.8
-        });
-        
-        // Handle case where conversion returns an array of blobs (for multi-page HEIC files)
-        const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-        
-        // Create a new file from the converted blob
-        const convertedFile = new File(
-          [finalBlob], 
-          selectedFile.name.replace(/\.(heic|heif)$/i, '.jpg'), 
-          { type: 'image/jpeg' }
-        );
-        
-        setFile(convertedFile);
-        
-        // Create a preview URL for the converted file
-        const previewUrl = URL.createObjectURL(finalBlob);
-        setPreview(previewUrl);
-        
-        toast({
-          title: "Conversion successful",
-          description: "Your HEIC file has been converted to JPEG format.",
-        });
-      } catch (error) {
-        console.error("Error converting HEIC file:", error);
-        toast({
-          title: "Conversion failed",
-          description: "There was an error converting your HEIC file. Please try with a JPEG or PNG file instead.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsConverting(false);
-      }
-    } else {
-      // Handle regular image files
-      setFile(selectedFile);
-      
-      // Create a preview URL
+    setIsHeicFile(isHeic);
+    setFile(selectedFile);
+    
+    // Create a preview URL for non-HEIC files only
+    if (!isHeic) {
       const previewUrl = URL.createObjectURL(selectedFile);
       setPreview(previewUrl);
+    } else {
+      // For HEIC files, no preview is available
+      setPreview(null);
+      toast({
+        title: "HEIC file detected",
+        description: "Preview is not available for HEIC files, but you can still upload it.",
+      });
     }
   };
 
@@ -112,6 +73,7 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
     }
     setFile(null);
     setPreview(null);
+    setIsHeicFile(false);
   };
 
   // Upload the receipt to Supabase
@@ -186,7 +148,7 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
     file,
     preview,
     isUploading,
-    isConverting,
+    isHeicFile,
     fileInputRef,
     triggerFileInput,
     handleFileChange,
