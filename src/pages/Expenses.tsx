@@ -52,6 +52,7 @@ import { ReceiptAnalyzer } from "@/components/ReceiptAnalyzer";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
+import { useProjects } from "@/hooks/use-projects";
 
 const expenses = [
   {
@@ -106,13 +107,6 @@ const expenses = [
   },
 ];
 
-const projects = [
-  { id: "1", name: "Kitchen Renovation" },
-  { id: "2", name: "Bathroom Remodel" },
-  { id: "3", name: "Office Buildout" },
-  { id: "4", name: "Deck Construction" },
-];
-
 export default function Expenses() {
   const [searchTerm, setSearchTerm] = useState("");
   const [addExpenseOpen, setAddExpenseOpen] = useState(false);
@@ -130,6 +124,8 @@ export default function Expenses() {
   const [category, setCategory] = useState("");
   const [projectId, setProjectId] = useState("");
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  
+  const { projects, isLoading: projectsLoading } = useProjects();
   
   const handleReceiptUploadSuccess = (filePath: string, extractedData?: ReceiptData) => {
     setUploadedReceiptUrl(filePath);
@@ -206,11 +202,18 @@ export default function Expenses() {
                       Upload a receipt image and tag it with a project.
                     </DialogDescription>
                   </DialogHeader>
-                  <ReceiptUploader 
-                    projects={projects} 
-                    onSuccess={handleReceiptUploadSuccess}
-                    onClose={() => setCaptureReceiptOpen(false)}
-                  />
+                  {projectsLoading ? (
+                    <div className="flex flex-col items-center justify-center p-6">
+                      <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                      <p>Loading projects...</p>
+                    </div>
+                  ) : (
+                    <ReceiptUploader 
+                      projects={projects} 
+                      onSuccess={handleReceiptUploadSuccess}
+                      onClose={() => setCaptureReceiptOpen(false)}
+                    />
+                  )}
                 </DialogContent>
               </Dialog>
               
@@ -413,101 +416,108 @@ export default function Expenses() {
               ))}
             </TabsList>
 
-            <TabsContent value={activeTab} className="space-y-4">
-              {filteredExpenses.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="rounded-full bg-muted p-6 mb-4">
-                    <Receipt className="h-10 w-10 text-muted-foreground" />
-                  </div>
-                  <h2 className="text-xl font-semibold mb-2">No expenses found</h2>
-                  <p className="text-muted-foreground max-w-md mb-6">
-                    {searchTerm ? 
-                      `No expenses match "${searchTerm}". Try a different search term.` : 
-                      "You haven't added any expenses yet. Capture a receipt or add an expense manually."}
-                  </p>
-                  {!searchTerm && (
-                    <div className="flex gap-2">
-                      <Button onClick={() => setCaptureReceiptOpen(true)}>
-                        <Camera className="mr-2 h-4 w-4" /> Capture Receipt
-                      </Button>
-                      <Button variant="outline" onClick={() => setAddExpenseOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Manually
-                      </Button>
+            {projectsLoading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Loading projects...</p>
+              </div>
+            ) : (
+              <TabsContent value={activeTab} className="space-y-4">
+                {filteredExpenses.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="rounded-full bg-muted p-6 mb-4">
+                      <Receipt className="h-10 w-10 text-muted-foreground" />
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredExpenses.map((expense) => (
-                    <Card key={expense.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-0">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-lg">{expense.title}</CardTitle>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Actions</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
-                              <DropdownMenuItem>Edit</DropdownMenuItem>
-                              <DropdownMenuItem>View Receipt</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleAnalyzeReceipt({
-                                id: expense.id,
-                                url: expense.receipt
-                              })}>
-                                Analyze Receipt
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive focus:text-destructive">
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-4">
-                        <div className="aspect-[4/3] bg-gray-100 rounded-md mb-4 overflow-hidden">
-                          <img
-                            src={expense.receipt}
-                            alt={`Receipt for ${expense.title}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">${expense.amount.toFixed(2)}</span>
+                    <h2 className="text-xl font-semibold mb-2">No expenses found</h2>
+                    <p className="text-muted-foreground max-w-md mb-6">
+                      {searchTerm ? 
+                        `No expenses match "${searchTerm}". Try a different search term.` : 
+                        "You haven't added any expenses yet. Capture a receipt or add an expense manually."}
+                    </p>
+                    {!searchTerm && (
+                      <div className="flex gap-2">
+                        <Button onClick={() => setCaptureReceiptOpen(true)}>
+                          <Camera className="mr-2 h-4 w-4" /> Capture Receipt
+                        </Button>
+                        <Button variant="outline" onClick={() => setAddExpenseOpen(true)}>
+                          <Plus className="mr-2 h-4 w-4" /> Add Manually
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredExpenses.map((expense) => (
+                      <Card key={expense.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                        <CardHeader className="pb-0">
+                          <div className="flex justify-between items-start">
+                            <CardTitle className="text-lg">{expense.title}</CardTitle>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Actions</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem>View Details</DropdownMenuItem>
+                                <DropdownMenuItem>Edit</DropdownMenuItem>
+                                <DropdownMenuItem>View Receipt</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleAnalyzeReceipt({
+                                  id: expense.id,
+                                  url: expense.receipt
+                                })}>
+                                  Analyze Receipt
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>{new Date(expense.date).toLocaleDateString()}</span>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                          <div className="aspect-[4/3] bg-gray-100 rounded-md mb-4 overflow-hidden">
+                            <img
+                              src={expense.receipt}
+                              alt={`Receipt for ${expense.title}`}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Tag className="h-4 w-4 text-muted-foreground" />
-                            <span>{expense.category}</span>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">${expense.amount.toFixed(2)}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span>{new Date(expense.date).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Tag className="h-4 w-4 text-muted-foreground" />
+                              <span>{expense.category}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clipboard className="h-4 w-4 text-muted-foreground" />
+                              <span>{expense.vendor}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Clipboard className="h-4 w-4 text-muted-foreground" />
-                            <span>{expense.vendor}</span>
+                          <div className="mt-4 flex items-center gap-2">
+                            <FolderKanban className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{expense.project}</span>
                           </div>
-                        </div>
-                        <div className="mt-4 flex items-center gap-2">
-                          <FolderKanban className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{expense.project}</span>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="pt-0">
-                        <Button variant="default" className="w-full">View Details</Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
+                        </CardContent>
+                        <CardFooter className="pt-0">
+                          <Button variant="default" className="w-full">View Details</Button>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </main>

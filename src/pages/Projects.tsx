@@ -9,7 +9,8 @@ import {
   Edit,
   Trash,
   Receipt,
-  Car
+  Car,
+  Loader2
 } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -42,61 +43,59 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Sample project data
-const projects = [
-  {
-    id: "1",
-    name: "Kitchen Renovation",
-    client: "Johnson Residence",
-    status: "In Progress",
-    startDate: "2023-03-15",
-    expenses: 3250.75,
-    mileage: 187,
-    description: "Complete kitchen renovation including new cabinets, countertops, and appliances.",
-  },
-  {
-    id: "2",
-    name: "Bathroom Remodel",
-    client: "Smith Family",
-    status: "Completed",
-    startDate: "2023-01-10",
-    expenses: 2100.50,
-    mileage: 95,
-    description: "Master bathroom remodel with new shower, vanity, and fixtures.",
-  },
-  {
-    id: "3",
-    name: "Office Buildout",
-    client: "ABC Corp",
-    status: "Pending",
-    startDate: "2023-04-22",
-    expenses: 0,
-    mileage: 0,
-    description: "New office space buildout including walls, electrical, and networking.",
-  },
-  {
-    id: "4",
-    name: "Deck Construction",
-    client: "Williams Residence",
-    status: "In Progress",
-    startDate: "2023-02-28",
-    expenses: 4325.65,
-    mileage: 142,
-    description: "New outdoor deck with composite decking, railings, and built-in seating.",
-  },
-];
+import { useProjects, Project } from "@/hooks/use-projects";
+import { useForm } from "react-hook-form";
+import { useAuth } from "@/contexts/AuthContext";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 export default function Projects() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [projectView, setProjectView] = useState<"grid" | "list">("grid");
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const { 
+    projects, 
+    isLoading, 
+    error, 
+    createProject, 
+    deleteProject 
+  } = useProjects();
+  
+  const { 
+    register, 
+    handleSubmit, 
+    reset,
+    formState: { isSubmitting } 
+  } = useForm({
+    defaultValues: {
+      name: "",
+      client: "",
+      status: "Pending",
+      description: ""
+    }
+  });
   
   // Filter projects based on search term
   const filteredProjects = projects.filter(project => 
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    project.client.toLowerCase().includes(searchTerm.toLowerCase())
+    (project.client?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
   );
+
+  const onSubmit = async (data: any) => {
+    await createProject(data);
+    reset();
+    setAddProjectOpen(false);
+  };
+  
+  const handleDeleteProject = async (id: string) => {
+    setIsDeleting(true);
+    await deleteProject(id);
+    setProjectToDelete(null);
+    setIsDeleting(false);
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -113,41 +112,69 @@ export default function Projects() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Project</DialogTitle>
-                  <DialogDescription>
-                    Create a new project to track expenses and mileage.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
-                      Name
-                    </Label>
-                    <Input id="name" className="col-span-3" />
+                <form onSubmit={handleSubmit(onSubmit)}>
+                  <DialogHeader>
+                    <DialogTitle>Add New Project</DialogTitle>
+                    <DialogDescription>
+                      Create a new project to track expenses and mileage.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="name" className="text-right">
+                        Name
+                      </Label>
+                      <Input 
+                        id="name" 
+                        className="col-span-3" 
+                        {...register("name", { required: true })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="client" className="text-right">
+                        Client
+                      </Label>
+                      <Input 
+                        id="client" 
+                        className="col-span-3"
+                        {...register("client")}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="status" className="text-right">
+                        Status
+                      </Label>
+                      <Input 
+                        id="status" 
+                        className="col-span-3" 
+                        defaultValue="Pending"
+                        {...register("status")}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="description" className="text-right">
+                        Description
+                      </Label>
+                      <Input 
+                        id="description" 
+                        className="col-span-3"
+                        {...register("description")}
+                      />
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="client" className="text-right">
-                      Client
-                    </Label>
-                    <Input id="client" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="status" className="text-right">
-                      Status
-                    </Label>
-                    <Input id="status" className="col-span-3" defaultValue="Pending" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="description" className="text-right">
-                      Description
-                    </Label>
-                    <Input id="description" className="col-span-3" />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" onClick={() => setAddProjectOpen(false)}>Save Project</Button>
-                </DialogFooter>
+                  <DialogFooter>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Project'
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
               </DialogContent>
             </Dialog>
           </div>
@@ -199,7 +226,12 @@ export default function Projects() {
             </div>
           </div>
 
-          {filteredProjects.length === 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Loading projects...</p>
+            </div>
+          ) : filteredProjects.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="rounded-full bg-muted p-6 mb-4">
                 <FolderKanban className="h-10 w-10 text-muted-foreground" />
@@ -245,9 +277,43 @@ export default function Projects() {
                             <Car className="mr-2 h-4 w-4" /> Add Trip
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive">
-                            <Trash className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
+                          <AlertDialog open={projectToDelete === project.id} onOpenChange={(open) => {
+                            if (!open) setProjectToDelete(null);
+                          }}>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => {
+                                e.preventDefault();
+                                setProjectToDelete(project.id);
+                              }}>
+                                <Trash className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete the project "{project.name}" and all associated data including expenses and mileage records.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => handleDeleteProject(project.id)}
+                                  disabled={isDeleting}
+                                >
+                                  {isDeleting ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    "Delete Project"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -262,7 +328,7 @@ export default function Projects() {
                         {project.status}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Started {new Date(project.startDate).toLocaleDateString()}
+                        Started {new Date(project.start_date).toLocaleDateString()}
                       </span>
                     </div>
                   </CardHeader>
@@ -274,16 +340,16 @@ export default function Projects() {
                         <TabsTrigger value="trips" className="flex-1">Trips</TabsTrigger>
                       </TabsList>
                       <TabsContent value="overview" className="pt-4">
-                        <p className="text-sm text-muted-foreground mb-4">{project.description}</p>
+                        <p className="text-sm text-muted-foreground mb-4">{project.description || "No description provided."}</p>
                       </TabsContent>
                       <TabsContent value="expenses" className="pt-4">
                         <div className="space-y-4">
                           <div className="flex justify-between">
                             <span className="text-sm font-medium">Total Expenses</span>
-                            <span className="text-sm font-semibold">${project.expenses.toFixed(2)}</span>
+                            <span className="text-sm font-semibold">${project.expenses?.toFixed(2) || "0.00"}</span>
                           </div>
                           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-brand-blue" style={{ width: `${Math.min(project.expenses / 50, 100)}%` }}></div>
+                            <div className="h-full bg-brand-blue" style={{ width: `${Math.min((project.expenses || 0) / 50, 100)}%` }}></div>
                           </div>
                           <Button variant="outline" size="sm" className="w-full">
                             <Receipt className="mr-2 h-4 w-4" /> View All Expenses
@@ -294,10 +360,10 @@ export default function Projects() {
                         <div className="space-y-4">
                           <div className="flex justify-between">
                             <span className="text-sm font-medium">Total Mileage</span>
-                            <span className="text-sm font-semibold">{project.mileage} miles</span>
+                            <span className="text-sm font-semibold">{project.mileage || 0} miles</span>
                           </div>
                           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-brand-green" style={{ width: `${Math.min(project.mileage / 2, 100)}%` }}></div>
+                            <div className="h-full bg-brand-green" style={{ width: `${Math.min((project.mileage || 0) / 2, 100)}%` }}></div>
                           </div>
                           <Button variant="outline" size="sm" className="w-full">
                             <Car className="mr-2 h-4 w-4" /> View All Trips
@@ -340,13 +406,13 @@ export default function Projects() {
                     </span>
                   </div>
                   <div className="col-span-2">
-                    {new Date(project.startDate).toLocaleDateString()}
+                    {new Date(project.start_date).toLocaleDateString()}
                   </div>
                   <div className="col-span-2">
-                    ${project.expenses.toFixed(2)}
+                    ${project.expenses?.toFixed(2) || "0.00"}
                   </div>
                   <div className="col-span-1">
-                    {project.mileage} mi
+                    {project.mileage || 0} mi
                   </div>
                   <div className="col-span-1 text-right">
                     <DropdownMenu>
@@ -362,9 +428,30 @@ export default function Projects() {
                         <DropdownMenuItem>Add Expense</DropdownMenuItem>
                         <DropdownMenuItem>Add Trip</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive focus:text-destructive">
-                          Delete
-                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
+                              Delete
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete the project "{project.name}" and all associated data including expenses and mileage records.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => deleteProject(project.id)}
+                              >
+                                Delete Project
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

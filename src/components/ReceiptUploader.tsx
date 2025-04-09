@@ -8,11 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-
-type Project = {
-  id: string;
-  name: string;
-};
+import { Project } from "@/hooks/use-projects";
 
 type ReceiptUploaderProps = {
   projects: Project[];

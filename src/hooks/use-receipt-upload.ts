@@ -95,6 +95,12 @@ export function useReceiptUpload({ userId }: UseReceiptUploadProps = {}) {
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       const filePath = `${userId}/${fileName}`;
       
+      // Create storage bucket if it doesn't exist
+      const { error: bucketError } = await supabase.storage.getBucket('receipts');
+      if (bucketError && bucketError.message.includes('does not exist')) {
+        await supabase.storage.createBucket('receipts', { public: false });
+      }
+      
       // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from('receipts')

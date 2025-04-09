@@ -6,11 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-type Project = {
-  id: string;
-  name: string;
-};
+import { Project } from "@/hooks/use-projects";
 
 type ReceiptFormProps = {
   projects: Project[];

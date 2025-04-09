@@ -33,6 +33,42 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          client: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       receipt_analysis: {
         Row: {
           analysis_date: string
@@ -126,6 +162,7 @@ export type Database = {
           file_path: string
           id: string
           project_id: string
+          temp_project_id: string | null
           upload_date: string
           user_id: string
         }
@@ -135,6 +172,7 @@ export type Database = {
           file_path: string
           id?: string
           project_id: string
+          temp_project_id?: string | null
           upload_date?: string
           user_id: string
         }
@@ -144,6 +182,7 @@ export type Database = {
           file_path?: string
           id?: string
           project_id?: string
+          temp_project_id?: string | null
           upload_date?: string
           user_id?: string
         }
