@@ -97,10 +97,19 @@ serve(async (req) => {
         
         try {
           const responseText = result.candidates[0].content.parts[0].text;
-          // Try to parse the JSON from the response
-          const parsedData = JSON.parse(responseText);
+          console.log("Raw response text:", responseText.substring(0, 100) + "...");
+          
+          // Remove markdown code block formatting if present
+          const cleanResponseText = responseText.replace(/```json\s*|\s*```/g, '').trim();
+          console.log("Cleaned response text:", cleanResponseText.substring(0, 100) + "...");
+          
+          // Try to parse the JSON from the cleaned response
+          const parsedData = JSON.parse(cleanResponseText);
+          console.log("Successfully parsed JSON response");
           
           if (parsedData.receipt_items && Array.isArray(parsedData.receipt_items)) {
+            console.log(`Found ${parsedData.receipt_items.length} receipt items`);
+            
             const itemsToInsert = parsedData.receipt_items.map((item: any) => ({
               receipt_analysis_id: analysis.id,
               receipt_id: receiptId,
@@ -147,7 +156,7 @@ serve(async (req) => {
             throw new Error("Invalid response format: missing receipt_items array");
           }
         } catch (parseError) {
-          console.error('Error parsing Gemini response:', parseError);
+          console.error('Error parsing Gemini response:', parseError, 'Response text sample:', result.candidates[0].content.parts[0].text.substring(0, 200));
           // Update analysis status to reflect failure
           await supabase
             .from('receipt_analysis')
@@ -211,6 +220,7 @@ serve(async (req) => {
 });
 
 async function analyzeReceiptWithGemini(imageUrl: string) {
+  console.log('Starting Gemini API request for receipt analysis');
   const model = "gemini-2.5-pro-preview-03-25";
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
   
@@ -241,49 +251,61 @@ async function analyzeReceiptWithGemini(imageUrl: string) {
       "vendor_name": "Store Name"
     }
     
-    Only respond with valid JSON, no additional text. If you're not sure about any value, use null.
+    IMPORTANT: Return ONLY the JSON object without any markdown formatting, code blocks, or additional text.
+    If you're not sure about any value, use null.
   `;
   
-  // Call Gemini API - Fixed: Removed the google_search_tool which was causing the error
+  console.log('Preparing API request payload');
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          { text: prompt },
+          { 
+            inline_data: { 
+              mime_type: "image/jpeg", 
+              data: await fetchImageAsBase64(imageUrl)
+            }
+          }
+        ]
+      }
+    ],
+    generation_config: {
+      temperature: 0.2,
+      top_p: 0.95,
+      top_k: 40
+    }
+    // No tools configuration as it was causing errors
+  };
+  
+  console.log('Sending Gemini API request');
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: prompt },
-            { 
-              inline_data: { 
-                mime_type: "image/jpeg", 
-                data: await fetchImageAsBase64(imageUrl)
-              }
-            }
-          ]
-        }
-      ],
-      generation_config: {
-        temperature: 0.2,
-        top_p: 0.95,
-        top_k: 40
-      }
-      // Removed the problematic tools configuration that was causing the error
-    })
+    body: JSON.stringify(requestBody)
   });
   
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Gemini API error: ${error}`);
+    const errorText = await response.text();
+    console.error(`Gemini API error (${response.status}):`, errorText);
+    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
   }
   
+  console.log('Gemini API request successful');
   return await response.json();
 }
 
 async function fetchImageAsBase64(url: string): Promise<string> {
+  console.log(`Fetching image from URL: ${url}`);
   const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+  }
+  
   const blob = await response.blob();
+  console.log(`Image fetched successfully, size: ${Math.round(blob.size / 1024)}KB`);
   
   // Convert blob to base64
   const buffer = await blob.arrayBuffer();
@@ -292,5 +314,7 @@ async function fetchImageAsBase64(url: string): Promise<string> {
   for (let i = 0; i < uint8Array.byteLength; i++) {
     binary += String.fromCharCode(uint8Array[i]);
   }
-  return btoa(binary);
+  const base64 = btoa(binary);
+  console.log(`Image converted to base64, length: ${base64.length} characters`);
+  return base64;
 }
